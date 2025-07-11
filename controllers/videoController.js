@@ -58,7 +58,7 @@ export const streamVideo = async (req, res) => {
     const files = await db.collection('videos.files').findOne({ filename });
 
     if (!files) {
-      return res.status(404).send("Video not found");
+      return res.status(404).send("Video not found in model");
     }
 
     const videoSize = files.length;
