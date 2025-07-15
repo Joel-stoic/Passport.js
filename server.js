@@ -3,8 +3,10 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import passport from 'passport';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import './config/passport.js';
 
 import videoRoutes from './routes/videoRoutes.js';
 import authRoutes from './routes/authRoutes.js';

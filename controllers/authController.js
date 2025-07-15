@@ -53,3 +53,42 @@ export const logout = (req, res) => {
     res.json({ message: 'Logged out successfully' });
   });
 };
+
+export const passportloginSuccess = (req, res) => {
+  if (!req.user) return res.status(401).send('Unauthorized');
+
+  // Create JWT for authenticated OAuth user
+  const token = jwt.sign(
+    {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  req.session.user = {
+    id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+  };
+
+  res.cookie('token', token, { httpOnly: true });
+
+  res.status(200).json({
+    message: 'OAuth login successful',
+    user: req.user,
+    token,
+  });
+};
+
+export const passportlogout = (req, res) => {
+  req.logout(err => {
+    if (err) return res.status(500).send('Logout failed');
+    req.session.destroy(() => {
+      res.clearCookie('token');
+      res.redirect('/');
+    });
+  });
+};
