@@ -1,6 +1,7 @@
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
+import { generateToken } from '../utils/jwt.js'; // 👈 Import the utility
+import { addToBlacklist } from '../config/blacklist.js'; // adjust path if needed
 
 export const login = async (req, res) => {
   const { name, password } = req.body;
@@ -17,25 +18,23 @@ export const login = async (req, res) => {
     const existingUser = await User.findOne({ name });
 
     if (!existingUser) {
-      // Hash and save the new user
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new User({ name, password: hashedPassword });
       await newUser.save();
 
-      const token = jwt.sign({ name }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      const token = generateToken({ name }); // 👈 Using utility
       req.session.user = { name };
       res.cookie('token', token, { httpOnly: true });
 
       return res.json({ message: "User added", token });
     }
 
-    // Compare passwords
     const isMatch = await bcrypt.compare(password, existingUser.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Incorrect password' });
     }
 
-    const token = jwt.sign({ name }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = generateToken({ name }); // 👈 Using utility
     req.session.user = { name };
     res.cookie('token', token, { httpOnly: true });
 
@@ -47,8 +46,15 @@ export const login = async (req, res) => {
 };
 
 export const logout = (req, res) => {
+  const token = req.cookies.token;
+
+  if (token) {
+    addToBlacklist(token); // ⬅️ blacklist token
+  }
+
   req.session.destroy(err => {
     if (err) return res.status(500).json({ error: 'Logout failed' });
+
     res.clearCookie('token');
     res.json({ message: 'Logged out successfully' });
   });
@@ -57,16 +63,11 @@ export const logout = (req, res) => {
 export const passportloginSuccess = (req, res) => {
   if (!req.user) return res.status(401).send('Unauthorized');
 
-  // Create JWT for authenticated OAuth user
-  const token = jwt.sign(
-    {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
+  const token = generateToken({
+    id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+  });
 
   req.session.user = {
     id: req.user._id,

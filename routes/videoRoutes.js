@@ -4,6 +4,7 @@ import { GridFsStorage } from 'multer-gridfs-storage';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { uploadVideo, getVideoList, streamVideo } from '../controllers/videoController.js';
+import { authenticate } from '../middleware/authMiddleware.js'; // ✅ import it
 
 dotenv.config();
 const router = express.Router();
@@ -22,8 +23,11 @@ const storage = new GridFsStorage({
 
 const upload = multer({ storage });
 
-router.post('/upload', upload.single('video'), uploadVideo);
-router.get('/videos', getVideoList);
+// ✅ Protect upload and listing
+router.post('/upload', authenticate, upload.single('video'), uploadVideo);
+router.get('/videos', authenticate, getVideoList);
+
+// ❌ Leave public if needed (e.g., for streaming by anyone)
 router.get('/video/:filename', streamVideo);
 
 export default router;
