@@ -77,11 +77,7 @@ export const passportloginSuccess = (req, res) => {
 
   res.cookie('token', token, { httpOnly: true });
 
-  res.status(200).json({
-    message: 'OAuth login successful',
-    user: req.user,
-    token,
-  });
+  res.redirect('/')
 };
 
 export const passportlogout = (req, res) => {
