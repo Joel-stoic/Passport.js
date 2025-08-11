@@ -22,6 +22,7 @@ router.get(
   '/google/callback',
   passport.authenticate('google', {
     failureRedirect: '/auth/failure',
+    session: true,
   }),
   passportloginSuccess
 );
@@ -35,6 +36,7 @@ router.get(
   '/facebook/callback',
   passport.authenticate('facebook', {
     failureRedirect: '/auth/failure',
+    session: true,
   }),
   passportloginSuccess
 );

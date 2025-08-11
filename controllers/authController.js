@@ -1,42 +1,50 @@
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
-import { generateToken } from '../utils/jwt.js'; // 👈 Import the utility
-import { addToBlacklist } from '../config/blacklist.js'; // adjust path if needed
+import { generateToken } from '../utils/jwt.js';
+import { addToBlacklist } from '../config/blacklist.js';
+import redisClient from '../config/redisClient.js'; // 🔁 Import Redis client
+import { sendLoginEmail } from '../config/emailService.js';
+import { loginSchema } from '../config/authValidation.js';
 
+// LOGIN
 export const login = async (req, res) => {
+  // ✅ Joi validation
+  const { error } = loginSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
   const { name, password } = req.body;
-
-  if (!name || !password) {
-    return res.status(400).json({ error: 'Name and password are required' });
-  }
-
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters long' });
-  }
 
   try {
     const existingUser = await User.findOne({ name });
 
     if (!existingUser) {
+      // New user creation
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new User({ name, password: hashedPassword });
       await newUser.save();
 
-      const token = generateToken({ name }); // 👈 Using utility
+      const token = generateToken({ name });
       req.session.user = { name };
       res.cookie('token', token, { httpOnly: true });
 
-      return res.json({ message: "User added", token });
+      await redisClient.set(`session:${name}`, JSON.stringify({ name }), { EX: 3600 });
+
+      return res.json({ message: 'User added', token });
     }
 
+    // Existing user login
     const isMatch = await bcrypt.compare(password, existingUser.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Incorrect password' });
     }
 
-    const token = generateToken({ name }); // 👈 Using utility
+    const token = generateToken({ name });
     req.session.user = { name };
     res.cookie('token', token, { httpOnly: true });
+
+    await redisClient.set(`session:${name}`, JSON.stringify({ name }), { EX: 3600 });
 
     return res.json({ message: 'User logged in', token });
   } catch (err) {
@@ -45,11 +53,18 @@ export const login = async (req, res) => {
   }
 };
 
-export const logout = (req, res) => {
+// LOGOUT
+export const logout = async (req, res) => {
   const token = req.cookies.token;
+  const user = req.session.user;
 
   if (token) {
-    addToBlacklist(token); // ⬅️ blacklist token
+    addToBlacklist(token);
+  }
+
+  // 🗑️ Delete session from Redis
+  if (user?.name) {
+    await redisClient.del(`session:${user.name}`);
   }
 
   req.session.destroy(err => {
@@ -60,7 +75,8 @@ export const logout = (req, res) => {
   });
 };
 
-export const passportloginSuccess = (req, res) => {
+// PASSPORT LOGIN SUCCESS
+export const passportloginSuccess = async (req, res) => {
   if (!req.user) return res.status(401).send('Unauthorized');
 
   const token = generateToken({
@@ -77,12 +93,34 @@ export const passportloginSuccess = (req, res) => {
 
   res.cookie('token', token, { httpOnly: true });
 
-  res.redirect('/')
+  await redisClient.set(
+    `session:${req.user.name}`,
+    JSON.stringify({
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+    }),
+    { EX: 3600 }
+  );
+
+  // Send login success email
+  sendLoginEmail(req.user.email, req.user.name);
+
+  res.redirect('/');
 };
 
-export const passportlogout = (req, res) => {
+// PASSPORT LOGOUT
+export const passportlogout = async (req, res) => {
+  const user = req.session.user;
+
+  // 🗑️ Delete session from Redis
+  if (user?.name) {
+    await redisClient.del(`session:${user.name}`);
+  }
+
   req.logout(err => {
     if (err) return res.status(500).send('Logout failed');
+
     req.session.destroy(() => {
       res.clearCookie('token');
       res.redirect('/');
