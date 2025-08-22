@@ -103,27 +103,60 @@ export const passportloginSuccess = async (req, res) => {
     { EX: 3600 }
   );
 
+  
+
   // Send login success email
   sendLoginEmail(req.user.email, req.user.name);
 
   res.redirect('/');
 };
 
-// PASSPORT LOGOUT
 export const passportlogout = async (req, res) => {
   const user = req.session.user;
 
-  // 🗑️ Delete session from Redis
-  if (user?.name) {
-    await redisClient.del(`session:${user.name}`);
-  }
+  try {
+    // 🗑️ Delete user session from Redis if it exists
+    if (user?.name) {
+      await redisClient.del(`session:${user.name}`);
+    }
 
-  req.logout(err => {
-    if (err) return res.status(500).send('Logout failed');
+    // 🔒 Passport logout
+    req.logout(err => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).send('Logout failed');
+      }
 
-    req.session.destroy(() => {
-      res.clearCookie('token');
-      res.redirect('/');
+      // 💣 Destroy session
+      req.session.destroy(() => {
+        // 🍪 Clear token cookie
+        res.clearCookie('token');
+        // 🚀 Redirect to home
+        res.redirect('/');
+      });
     });
-  });
+  } catch (err) {
+    console.error('Logout exception:', err);
+    res.status(500).json({ error: 'Server error during logout' });
+  }
 };
+
+
+// PASSPORT LOGOUT
+// export const passportlogout = async (req, res) => {
+//   const user = req.session.user;
+
+//   // 🗑️ Delete session from Redis
+//   if (user?.name) {
+//     await redisClient.del(`session:${user.name}`);
+//   }
+
+//   req.logout(err => {
+//     if (err) return res.status(500).send('Logout failed');
+
+//     req.session.destroy(() => {
+//       res.clearCookie('token');
+//       res.redirect('/');
+//     });
+//   });
+// };

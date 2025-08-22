@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Subscribe</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0f0f0f; /* YouTube's true dark background */
+      color: #f1f1f1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .email-card, .plan {
+      background-color: #1f1f1f;
+      border: 1px solid #303030;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.02);
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .email-card input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 1rem;
+      font-size: 1rem;
+      border: 1px solid #555;
+      border-radius: 8px;
+      background-color: #121212;
+      color: #fff;
+    }
+
+    .email-card input::placeholder {
+      color: #aaa;
+    }
+
+    .plans {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .plan h2 {
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .plan p {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 1rem;
+    }
+
+    .plan button {
+      padding: 12px;
+      width: 100%;
+      font-size: 1rem;
+      font-weight: 600;
+      background-color: #ff0000; /* YouTube Red */
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 14px rgba(255, 0, 0, 0.3);
+    }
+
+    .plan button:hover {
+      background-color: #e60000;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    }
+
+    @media (min-width: 640px) {
+      .plans {
+        flex-direction: row;
+        justify-content: center;
+      }
+
+      .plan {
+        width: 45%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Choose Your Plan</h1>
+
+  <div class="email-card">
+    <label for="email"><strong>Email Address</strong></label>
+    <input type="email" id="email" placeholder="you@example.com" required />
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #888;">
+      We’ll use this to send your receipt.
+    </p>
+  </div>
+
+  <div class="plans">
+    <div class="plan">
+      <h2>Basic Plan</h2>
+      <p>Access standard content for <strong>$10</strong></p>
+      <button data-price="1000" data-name="Basic Plan">Subscribe - $10</button>
+    </div>
+
+    <div class="plan">
+      <h2>Premium Plan</h2>
+      <p>Access premium content for <strong>$20</strong></p>
+      <button data-price="2000" data-name="Premium Plan">Subscribe - $20</button>
+    </div>
+  </div>
+
+  <script type="module">
+    const buttons = document.querySelectorAll('button[data-price]');
+    const emailInput = document.getElementById('email');
+
+    buttons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const price = parseInt(button.dataset.price);
+        const productName = button.dataset.name;
+        const email = emailInput.value.trim();
+
+        if (!email) {
+          alert('Please enter your email before continuing.');
+          return;
+        }
+
+        try {
+          const response = await fetch('http://localhost:3000/stripe/create-checkout-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ productName, price, email }),
+          });
+
+          const data = await response.json();
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            alert('Failed to create Stripe session: ' + data.error);
+          }
+        } catch (err) {
+          alert('Error creating Stripe session');
+          console.error(err);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

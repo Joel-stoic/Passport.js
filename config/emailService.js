@@ -23,3 +23,4 @@ export const sendLoginEmail = async (toEmail, name) => {
     console.error('❌ Error sending login email:', err.message);
   }
 };
+  

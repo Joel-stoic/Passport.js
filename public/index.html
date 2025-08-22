@@ -234,12 +234,10 @@
       </a>
 
       <button onclick="location.href='/chat'">Chat</button>
-
+      <button onclick="logout()" style="background-color: #ff4c4c;">Logout</button>
+      <button onclick="location.href='/stripe'">Subscription</button>
     </nav>
     </div>
-   
-
-   
   </header>
 
   <main>
@@ -300,8 +298,21 @@
       });
     }
 
-    // Load vide22os on page load
+    // Load videos on page load
     window.onload = loadVideoList;
+
+    // Logout function
+    function logout() {
+      fetch('/auth/logout', { method: 'POST' })
+        .then(response => {
+          if (response.ok) {
+            window.location.href = '/';
+          } else {
+            alert('Logout failed.');
+          }
+        })
+        .catch(() => alert('Logout failed.'));
+    }
   </script>
 </body>
 </html>

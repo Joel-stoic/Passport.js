@@ -32,6 +32,16 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true,
   },
+    productName: {
+    type: String,
+  },
+  price: {
+    type: Number,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 
   // Optional field
   profilePicture: String,

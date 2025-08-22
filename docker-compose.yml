@@ -21,10 +21,12 @@ services:
       - FACEBOOK_CALLBACK_URL=${FACEBOOK_CALLBACK_URL}
       - MONGO_URI=${MONGO_URI}
       - REDIS_URL=${REDIS_URL}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
 
   redis:
     image: redis:7
-    container_name: my-redis
+    container_name: my-redis-joel
     ports:
       - "6379:6379"
 
