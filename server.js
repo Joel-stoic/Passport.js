@@ -14,7 +14,7 @@ import videoRoutes from './routes/videoRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import stripeRoutes from './routes/stripeRoutes.js';
 import { authenticate } from './middleware/authMiddleware.js';
-
+import {cloudinaryRoute} from './routes/cloudinaryRoutes.js'
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -56,6 +56,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', videoRoutes);
 app.use('/auth', authRoutes);
 app.use('/stripe',authenticate, stripeRoutes);
+
+app.use('/cloudinary',cloudinaryRoute)
 
 // Pages
 app.get('/', (req, res) => {

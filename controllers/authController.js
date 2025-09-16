@@ -29,7 +29,7 @@ export const login = async (req, res) => {
       req.session.user = { name };
       res.cookie('token', token, { httpOnly: true });
 
-      await redisClient.set(`session:${name}`, JSON.stringify({ name }), { EX: 3600 });
+      // await redisClient.set(`session:${name}`, JSON.stringify({ name }), { EX: 3600 });
 
       return res.json({ message: 'User added', token });
     }
@@ -44,7 +44,7 @@ export const login = async (req, res) => {
     req.session.user = { name };
     res.cookie('token', token, { httpOnly: true });
 
-    await redisClient.set(`session:${name}`, JSON.stringify({ name }), { EX: 3600 });
+    // await redisClient.set(`session:${name}`, JSON.stringify({ name }), { EX: 3600 });
 
     return res.json({ message: 'User logged in', token });
   } catch (err) {
@@ -141,22 +141,3 @@ export const passportlogout = async (req, res) => {
   }
 };
 
-
-// PASSPORT LOGOUT
-// export const passportlogout = async (req, res) => {
-//   const user = req.session.user;
-
-//   // 🗑️ Delete session from Redis
-//   if (user?.name) {
-//     await redisClient.del(`session:${user.name}`);
-//   }
-
-//   req.logout(err => {
-//     if (err) return res.status(500).send('Logout failed');
-
-//     req.session.destroy(() => {
-//       res.clearCookie('token');
-//       res.redirect('/');
-//     });
-//   });
-// };

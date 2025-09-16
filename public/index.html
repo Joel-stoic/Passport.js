@@ -213,7 +213,7 @@
         gap: 50px;
         align-items: flex-end;
       ">
-       <h1>StreamIt</h1>
+        <h1>StreamIt</h1>
 
     <nav>
       <a class="google" href="/auth/google">
@@ -243,9 +243,12 @@
   <main>
     <video id="videoPlayer" controls></video>
      <form id="uploadForm">
-      <input type="file" name="video" accept="video/*" required />
-      <button type="submit">Upload</button>
-    </form>
+       <input type="file" id="videoFile" name="video" accept="video/*" required />
+       
+       <button type="submit">Upload</button>
+
+       <button type="button" id="cloudinaryUploadBtn">Upload to Cloudinary</button>
+     </form>
     <div class="video-list">
       <h2>Recommended Videos</h2>
       <div id="videos"></div>
@@ -254,48 +257,73 @@
 
   <script>
     const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('videoFile'); // Get the file input by its new ID
+    const cloudinaryBtn = document.getElementById('cloudinaryUploadBtn'); // Get the new Cloudinary button
     const videosContainer = document.getElementById('videos');
     const videoPlayer = document.getElementById('videoPlayer');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
+    // REUSABLE UPLOAD FUNCTION
+    async function uploadFile(url) {
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Please select a file first.');
+            return;
+        }
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+        const formData = new FormData();
+        formData.append('video', fileInput.files[0]); // Append the selected file
 
-      const data = await res.json();
-      alert(data.message || 'Uploaded!');
-      form.reset();
-      loadVideoList();
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await res.json();
+            alert(data.message || 'Upload complete!');
+            form.reset();
+            loadVideoList(); // Refresh the video list after any upload
+        } catch (error) {
+            console.error("Upload failed:", error);
+            alert("Upload failed. Please check the console for details.");
+        }
+    }
+
+    // Event listener for the ORIGINAL form submission (local upload)
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        uploadFile('/api/upload'); // Uses the original endpoint
+    });
+
+    // Event listener for the NEW Cloudinary button
+    cloudinaryBtn.addEventListener('click', () => {
+        // Calls the same function but with your Cloudinary endpoint
+        uploadFile('/cloudinary/upload');
     });
 
     async function loadVideoList() {
-      const res = await fetch('/api/videos');
-      const videos = await res.json();
+        const res = await fetch('/api/videos');
+        const videos = await res.json();
 
-      videosContainer.innerHTML = '';
+        videosContainer.innerHTML = '';
 
-      videos.forEach((v, i) => {
-        const div = document.createElement('div');
-        div.className = 'video-item';
-        div.innerHTML = `
-          <div class="video-thumbnail">No Thumbnail</div>
-          <div class="video-filename">${v.filename}</div>
-        `;
-        div.onclick = () => {
-          videoPlayer.style.opacity = 0;
-          videoPlayer.src = `/api/video/${encodeURIComponent(v.filename)}`;
-          videoPlayer.load();
-          videoPlayer.play();
-          setTimeout(() => {
-            videoPlayer.style.opacity = 1;
-          }, 200);
-        };
-        videosContainer.appendChild(div);
-      });
+        videos.forEach((v) => {
+            const div = document.createElement('div');
+            div.className = 'video-item';
+            div.innerHTML = `
+                <div class="video-thumbnail">No Thumbnail</div>
+                <div class="video-filename">${v.filename}</div>
+            `;
+            div.onclick = () => {
+                videoPlayer.style.opacity = 0;
+                videoPlayer.src = `/api/video/${encodeURIComponent(v.filename)}`;
+                videoPlayer.load();
+                videoPlayer.play();
+                setTimeout(() => {
+                    videoPlayer.style.opacity = 1;
+                }, 200);
+            };
+            videosContainer.appendChild(div);
+        });
     }
 
     // Load videos on page load
@@ -303,15 +331,15 @@
 
     // Logout function
     function logout() {
-      fetch('/auth/logout', { method: 'POST' })
-        .then(response => {
-          if (response.ok) {
-            window.location.href = '/';
-          } else {
-            alert('Logout failed.');
-          }
-        })
-        .catch(() => alert('Logout failed.'));
+        fetch('/auth/logout', { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    alert('Logout failed.');
+                }
+            })
+            .catch(() => alert('Logout failed.'));
     }
   </script>
 </body>
